@@ -1,0 +1,108 @@
+project_name: CamoDiffusion
+
+__base__:
+  - config/dataset_352x352.yaml
+
+model:
+  name: model.net.net
+  params:
+    class_num: 1
+    mask_chans: 1
+
+    # Edge injection (Eq.3) en el wrapper / net
+    #use_edge_inj: True
+    #edge_inj_strength: 0.05
+    # Eq.3 (esto SÍ lo usa net.py)
+    lambda_inj: 0.075
+    edge_filter: "laplacian"   # o "none"
+
+cond_uvit:
+  name: model.net.EmptyObject
+  params:
+    conditioning_klass: model.net.EmptyObject
+diffusion_model:
+  name: model.SimpleDiffSef.CondGaussianDiffusion
+  params:
+    model: null
+    image_size: 352
+    channels: 1
+    cond_channels: 3
+    noise_d: 64
+    num_sample_steps: 30
+    clip_sample_denoised: True
+    pred_objective: "x0"
+    loss_type: "model.loss.structure_loss"
+
+    # 👇 clave para MAE/loss estable
+    lambda_ual: 0.01          # o 0.0 en el primer A/B
+    ual_gamma: 1.0
+
+    lambda_gt_edge: 0.01
+    lambda_rgb_edge: 0.005    # o 0.0 en el primer A/B
+
+    edge_threshold: 0.30
+    edge_smooth: True
+
+    multiscale:   [1.0, 0.5, 0.25]
+    multiscale_w: [1.0, 0.25, 0.125]
+
+optimizer:
+  name: torch.optim.AdamW
+  params:
+    lr: 5e-5 #lr: 1.6e-4
+
+
+train_val_forward_fn: "model.train_val_forward.modification_train_val_forward"
+
+train_dataset:
+  name: dataset.data_val.PolypObjDataset
+  params:
+    boundary_modification: True
+    image_root: "./TrainDataset/Imgs/"
+    gt_root: "./TrainDataset/GT/"
+    edge_root: "./TrainDataset/edge/"
+    trainsize: 352
+    # opcional (para que coincida con diffusion)
+    edge_threshold: 0.25
+    edge_smooth: True
+
+test_dataset:
+  COD10K:
+    name: dataset.data_val.test_dataset
+    params:
+      image_root: "./TestDataset/COD10K/Imgs/"
+      gt_root: "./TestDataset/COD10K/GT/"
+      edge_root: "./TestDataset/COD10K/edge/"
+      testsize: 352
+      edge_threshold: 0.25
+      edge_smooth: True
+
+  CAMO:
+    name: dataset.data_val.test_dataset
+    params:
+      image_root: "./TestDataset/CAMO/Imgs/"
+      gt_root: "./TestDataset/CAMO/GT/"
+      edge_root: "./TestDataset/CAMO/edge/"
+      testsize: 352
+      edge_threshold: 0.25
+      edge_smooth: True
+
+  CHAMELEON:
+    name: dataset.data_val.test_dataset
+    params:
+      image_root: "./TestDataset/CHAMELEON/Imgs/"
+      gt_root: "./TestDataset/CHAMELEON/GT/"
+      edge_root: "./TestDataset/CHAMELEON/edge/"
+      testsize: 352
+      edge_threshold: 0.25
+      edge_smooth: True
+
+  NC4K:
+    name: dataset.data_val.test_dataset
+    params:
+      image_root: "./TestDataset/NC4K/Imgs/"
+      gt_root: "./TestDataset/NC4K/GT/"
+      edge_root: "./TestDataset/NC4K/edge/"
+      testsize: 352
+      edge_threshold: 0.25
+      edge_smooth: True
